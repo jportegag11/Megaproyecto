@@ -16,11 +16,13 @@ dateString = '%Y/%m/%d %H:%M:%S'
 sensor = Adafruit_DHT.DHT11
 pin = 4
 
-
-username = 'JuanDiego' 
+#SSH
+username = 'Lagouvg' 
 port = 22 #ssh
-password = ''
-hostname = '192.168.1.22'
+password = 'Lagouvg'
+hostname = '192.168.1.7'
+
+enviando = False
 
 """SENSOR DE HUMEDAD"""
 humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
@@ -31,7 +33,6 @@ f.close()
 """FIN SENSOR HUMEDAD"""	
 
 
-a=0
 """SENSOR DE PyT"""
 
 #Direcciones de registros importantes
@@ -91,19 +92,32 @@ print "la presion es: " + str(pres) + "mbar"
 """FIN SENSOR DE PyT"""
 
 """REESCRITURA DE ARCHIVOS .dat CON DATOS DE LOS SENSORES"""
-#archivos = os.listdir("/Users/Daniela/Downloads/") #files on directory
-#print archivos[0] #file to transmit
-with open(archivos[0],'r') as file:
+
+lagoarchivos = os.listdir('/home/pi/acqua/brc/lago')
+lagoarchivos.sort(reverse=True)
+        
+directorioactual = os.getcwd()
+        
+os.rename('/home/pi/acqua/brc/lago/' + lagoarchivos[0], directorioactual + '/' + lagoarchivos[0])
+
+enviar = os.listdir(directorioactual) #files on directory
+enviar.sort(reverse=True)
+
+with open(enviar[0],'r') as file:
 	data = file.readlines()
 
 data[13] = "# #   # x s " + str(temp) + " C " + str(pres) + " hPa 1582 m : temperature <T>, pressure <P> and altitude (from pressure) <A>\n"
 data[14] = "# #   # x g 14.548006 -91.193671 1582   : GPS data - latitude, longitude, altitude"
 
 
-with open(archivos[0],'w') as file:
+with open(enviar[0],'w') as file:
 	file.writelines(data)
+    
 """FIN DE REESCRITURA DE ARCHIVOS"""
-if(a==0):
+
+"""ENVIO DE DATOS"""
+
+if(enviando==True):
     try:      
         ssh = paramiko.SSHClient()        #open ssh
         ssh.load_system_host_keys()
@@ -113,18 +127,15 @@ if(a==0):
     
         sftp = ssh.open_sftp()    
     
-        remotepath = '/Users/JuanDiego/Desktop/paisaje.jpg' #remote path - UVG Sur 
-        localpath = '/users/Daniela/Desktop/paisaje.jpg' #local path - rasp
-    
-        sftp.put(localpath, remotepath) #send file from rasp to UVG Sur
-    
+        for i in range(len(directorioactual)-1)
+            remotepath = '/home/lagouvg/Escritorio' + enviar[i] #remote path - UVG Sur 
+            localpath = directorioactual + '/' + enviar[i] #local path - rasp
+            sftp.put(localpath, remotepath) #send file from rasp to UVG Sur
+
+            #os.remove(directorioactual + '/' + enviar[i]) #delete trasmitted file from folder
+
         sftp.close()
         ssh.close()
         
     except Exception, e:
         print str(e)
-
-
-#os.rename("/Users/Daniela/Downloads/paisaje.jpg","/Users/Daniela/Desktop/paisaje.jpg") #move transmitted file to temp folder
-
-#os.remove("/Users/Daniela/Downloads/RL3.png") #delete trasmitted file from folder
